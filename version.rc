@@ -14,7 +14,7 @@ VS_VERSION_INFO VERSIONINFO
         BLOCK "040904b0"
         {
             VALUE "CompanyName", "B99"
-            VALUE "FileDescription", "Grabs running process binaries and saves them with SHA256 hash names"
+            VALUE "FileDescription", "Binary Grabber"
             VALUE "FileVersion", "1.0.0"
             VALUE "InternalName", "BinGrabber"
             VALUE "OriginalFilename", "bin_grabber.exe"
