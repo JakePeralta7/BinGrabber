@@ -1,4 +1,5 @@
 # ProcessSnatcher
+Grabs running process binaries and saves them with SHA256 hash names.
  
 ## Build
 ```
