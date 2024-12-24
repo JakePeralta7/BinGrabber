@@ -140,7 +140,7 @@ void collect_process_binaries(const char *outputDir) {
         if (Module32First(hModuleSnap, &me32)) {
             char destPath[MAX_PATH_LEN];
             get_sha256(me32.szExePath, hash);
-            snprintf(destPath, MAX_PATH_LEN, "%s\\%s.exe", outputDir, hash);
+            snprintf(destPath, MAX_PATH_LEN, "%s\\%s", outputDir, hash);
 
             if (!hash_exists(hash)) {
                 copy_file(me32.szExePath, destPath);
