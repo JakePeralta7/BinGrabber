@@ -5,6 +5,7 @@
 #include <wincrypt.h>
 #include <sys/stat.h>
 #include <string.h>
+#include <time.h>
 
 #pragma comment(lib, "shlwapi.lib")
 #pragma comment(lib, "advapi32.lib")
@@ -32,9 +33,24 @@ int file_exists(const char *filename) {
     return (stat(filename, &buffer) == 0);
 }
 
+void get_timestamp(char *buffer, size_t bufferSize) {
+    time_t now = time(NULL);
+    struct tm *tm_info = localtime(&now);
+    strftime(buffer, bufferSize, "%Y-%m-%d %H:%M:%S", tm_info);
+}
+
+void log_error(const char *message, const char *detail) {
+    char timestamp[20];
+    get_timestamp(timestamp, sizeof(timestamp));
+    fprintf(stderr, "[%s] Error: %s %s\n", timestamp, message, detail);
+}
+
 void get_sha256(const char *path, char outputBuffer[HASH_SIZE]) {
     HANDLE hFile = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
-    if (hFile == INVALID_HANDLE_VALUE) return;
+    if (hFile == INVALID_HANDLE_VALUE) {
+        log_error("Unable to open file", path);
+        return;
+    }
 
     HCRYPTPROV hProv = 0;
     HCRYPTHASH hHash = 0;
@@ -44,11 +60,13 @@ void get_sha256(const char *path, char outputBuffer[HASH_SIZE]) {
     DWORD hashLen = 32;
 
     if (!CryptAcquireContext(&hProv, NULL, NULL, PROV_RSA_AES, CRYPT_VERIFYCONTEXT)) {
+        log_error("CryptAcquireContext failed", "");
         CloseHandle(hFile);
         return;
     }
 
     if (!CryptCreateHash(hProv, CALG_SHA_256, 0, 0, &hHash)) {
+        log_error("CryptCreateHash failed", "");
         CryptReleaseContext(hProv, 0);
         CloseHandle(hFile);
         return;
@@ -56,6 +74,7 @@ void get_sha256(const char *path, char outputBuffer[HASH_SIZE]) {
 
     while (ReadFile(hFile, buffer, sizeof(buffer), &bytesRead, NULL) && bytesRead != 0) {
         if (!CryptHashData(hHash, buffer, bytesRead, 0)) {
+            log_error("CryptHashData failed", "");
             CryptDestroyHash(hHash);
             CryptReleaseContext(hProv, 0);
             CloseHandle(hFile);
@@ -65,6 +84,8 @@ void get_sha256(const char *path, char outputBuffer[HASH_SIZE]) {
 
     if (CryptGetHashParam(hHash, HP_HASHVAL, hash, &hashLen, 0)) {
         sha256_hash_string(hash, outputBuffer);
+    } else {
+        log_error("CryptGetHashParam failed", "");
     }
 
     CryptDestroyHash(hHash);
@@ -73,7 +94,9 @@ void get_sha256(const char *path, char outputBuffer[HASH_SIZE]) {
 }
 
 void copy_file(const char *src, const char *dest) {
-    CopyFile(src, dest, FALSE);
+    if (!CopyFile(src, dest, FALSE)) {
+        log_error("Unable to copy file from", src);
+    }
 }
 
 int hash_exists(const char *hash) {
@@ -89,6 +112,10 @@ int hash_exists(const char *hash) {
 
 void add_hash_to_cache(const char *hash) {
     HashNode *new_node = (HashNode *)malloc(sizeof(HashNode));
+    if (new_node == NULL) {
+        log_error("Memory allocation failed", "");
+        return;
+    }
     strcpy(new_node->hash, hash);
     new_node->next = hash_cache;
     hash_cache = new_node;
@@ -104,7 +131,7 @@ void collect_process_binaries(const char *outputDir) {
     // Create the output directory if it doesn't exist
     if (!file_exists(outputDir)) {
         if (!CreateDirectory(outputDir, NULL)) {
-            printf("Failed to create directory: %s\n", outputDir);
+            log_error("Failed to create directory", outputDir);
             return;
         }
     }
@@ -112,12 +139,16 @@ void collect_process_binaries(const char *outputDir) {
     snprintf(csvPath, MAX_PATH_LEN, "%s\\processes.csv", outputDir);
 
     csvFile = fopen(csvPath, "w");
-    if (!csvFile) return;
+    if (!csvFile) {
+        log_error("Unable to open CSV file", csvPath);
+        return;
+    }
 
     fprintf(csvFile, "PID,Original File Path,SHA-256\n");
 
     hProcessSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
     if (hProcessSnap == INVALID_HANDLE_VALUE) {
+        log_error("CreateToolhelp32Snapshot failed", "for processes");
         fclose(csvFile);
         return;
     }
@@ -125,6 +156,7 @@ void collect_process_binaries(const char *outputDir) {
     pe32.dwSize = sizeof(PROCESSENTRY32);
 
     if (!Process32First(hProcessSnap, &pe32)) {
+        log_error("Process32First failed", "");
         CloseHandle(hProcessSnap);
         fclose(csvFile);
         return;
@@ -134,7 +166,12 @@ void collect_process_binaries(const char *outputDir) {
         HANDLE hModuleSnap = INVALID_HANDLE_VALUE;
         MODULEENTRY32 me32;
         hModuleSnap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, pe32.th32ProcessID);
-        if (hModuleSnap == INVALID_HANDLE_VALUE) continue;
+        if (hModuleSnap == INVALID_HANDLE_VALUE) {
+            char detail[256];
+            snprintf(detail, sizeof(detail), "for pid %lu", pe32.th32ProcessID);
+            log_error("CreateToolhelp32Snapshot for modules failed", detail);
+            continue;
+        }
 
         me32.dwSize = sizeof(MODULEENTRY32);
         if (Module32First(hModuleSnap, &me32)) {
@@ -148,6 +185,8 @@ void collect_process_binaries(const char *outputDir) {
             }
 
             fprintf(csvFile, "%lu,%s,%s\n", pe32.th32ProcessID, me32.szExePath, hash);
+        } else {
+            log_error("Module32First failed", "");
         }
         CloseHandle(hModuleSnap);
     } while (Process32Next(hProcessSnap, &pe32));
@@ -158,7 +197,7 @@ void collect_process_binaries(const char *outputDir) {
 
 int main(int argc, char *argv[]) {
     if (argc != 2) {
-        printf("Usage: %s <output_directory>\n", argv[0]);
+        fprintf(stderr, "Usage: %s <output_directory>\n", argv[0]);
         return 1;
     }
 
