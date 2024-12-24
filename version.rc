@@ -14,7 +14,7 @@ VS_VERSION_INFO VERSIONINFO
         BLOCK "040904b0"
         {
             VALUE "CompanyName", "B99"
-            VALUE "FileDescription", "Lists loaded modules for each running process"
+            VALUE "FileDescription", "Grabs running process binaries and saves them with SHA256 hash names"
             VALUE "FileVersion", "1.0.0"
             VALUE "InternalName", "BinGrabber"
             VALUE "OriginalFilename", "bin_grabber.exe"
