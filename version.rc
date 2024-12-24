@@ -1,8 +1,8 @@
 #include <winver.h>
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,0
- PRODUCTVERSION 1,0,0
+ FILEVERSION 1,0,1
+ PRODUCTVERSION 1,0,1
  FILEFLAGSMASK VS_FFI_FILEFLAGSMASK
  FILEFLAGS 0
  FILEOS VOS_NT_WINDOWS32
@@ -15,11 +15,11 @@ VS_VERSION_INFO VERSIONINFO
         {
             VALUE "CompanyName", "B99"
             VALUE "FileDescription", "Binary Grabber"
-            VALUE "FileVersion", "1.0.0"
+            VALUE "FileVersion", "1.0.1"
             VALUE "InternalName", "BinGrabber"
             VALUE "OriginalFilename", "bin_grabber.exe"
             VALUE "ProductName", "BinGrabber"
-            VALUE "ProductVersion", "1.0.0"
+            VALUE "ProductVersion", "1.0.1"
         }
     }
     BLOCK "VarFileInfo"
