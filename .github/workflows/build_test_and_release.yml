@@ -13,7 +13,7 @@ permissions:
   contents: write
 
 jobs:
-  build_and_release:
+  build_test_and_release:
     runs-on: windows-latest
     steps:
     - name: Sync Repo to the Server
@@ -25,10 +25,13 @@ jobs:
         gcc .\src\bin_grabber.c version.o -o .\output\bin_grabber_x64.exe -s -m64
 
     - name: Test the Tool
-      run: .\output\bin_grabber_x64.exe running_processes
-
-    - name: Check Output
-      run: Get-ChildItem running_processes
+      run: |
+        .\output\bin_grabber_x64.exe running_processes
+        $output = Get-ChildItem running_processes
+        if (-not ($output | Where-Object -FilterScript {$_.Name -eq "processes.csv"})) {
+          Write-Output "Didn't found processes.csv"
+          exit 1
+        }
 
     - name: Remove Placeholder
       run: Remove-Item output/.gitkeep
