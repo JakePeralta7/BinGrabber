@@ -7,12 +7,14 @@
 #include <string.h>
 #include <time.h>
 
+// Link with the required libraries
 #pragma comment(lib, "shlwapi.lib")
 #pragma comment(lib, "advapi32.lib")
 
 #define MAX_PATH_LEN 260
 #define HASH_SIZE 65
 
+// Structure to store hash values in a linked list
 typedef struct HashNode {
     char hash[HASH_SIZE];
     struct HashNode *next;
@@ -20,6 +22,7 @@ typedef struct HashNode {
 
 HashNode *hash_cache = NULL;
 
+// Convert SHA-256 hash to a string
 void sha256_hash_string(unsigned char hash[32], char outputBuffer[HASH_SIZE]) {
     int i;
     for (i = 0; i < 32; i++) {
@@ -28,23 +31,27 @@ void sha256_hash_string(unsigned char hash[32], char outputBuffer[HASH_SIZE]) {
     outputBuffer[64] = 0;
 }
 
+// Check if a file exists
 int file_exists(const char *filename) {
     struct stat buffer;
     return (stat(filename, &buffer) == 0);
 }
 
+// Get the current timestamp as a string
 void get_timestamp(char *buffer, size_t bufferSize) {
     time_t now = time(NULL);
     struct tm *tm_info = localtime(&now);
     strftime(buffer, bufferSize, "%Y-%m-%d %H:%M:%S", tm_info);
 }
 
+// Log an error message with a timestamp
 void log_error(const char *message, const char *detail) {
     char timestamp[20];
     get_timestamp(timestamp, sizeof(timestamp));
     fprintf(stderr, "[%s] Error: %s %s\n", timestamp, message, detail);
 }
 
+// Compute the SHA-256 hash of a file
 void get_sha256(const char *path, char outputBuffer[HASH_SIZE]) {
     HANDLE hFile = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
     if (hFile == INVALID_HANDLE_VALUE) {
@@ -93,12 +100,14 @@ void get_sha256(const char *path, char outputBuffer[HASH_SIZE]) {
     CloseHandle(hFile);
 }
 
+// Copy a file from src to dest
 void copy_file(const char *src, const char *dest) {
     if (!CopyFile(src, dest, FALSE)) {
         log_error("Unable to copy file from", src);
     }
 }
 
+// Check if a hash exists in the cache
 int hash_exists(const char *hash) {
     HashNode *current = hash_cache;
     while (current != NULL) {
@@ -110,6 +119,7 @@ int hash_exists(const char *hash) {
     return 0;
 }
 
+// Add a hash to the cache
 void add_hash_to_cache(const char *hash) {
     HashNode *new_node = (HashNode *)malloc(sizeof(HashNode));
     if (new_node == NULL) {
@@ -121,6 +131,7 @@ void add_hash_to_cache(const char *hash) {
     hash_cache = new_node;
 }
 
+// Collect binaries of running processes and save their hashes
 void collect_process_binaries(const char *outputDir) {
     HANDLE hProcessSnap;
     PROCESSENTRY32 pe32;
