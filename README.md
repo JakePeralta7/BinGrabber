@@ -1,4 +1,6 @@
 # BinGrabber
+[![Build & Release](https://github.com/JakePeralta7/BinGrabber/actions/workflows/build_and_release.yml/badge.svg)](https://github.com/JakePeralta7/BinGrabber/actions/workflows/build_and_release.yml)
+
 Grabs running process binaries and saves them with SHA256 hash names.
  
 ## Build
