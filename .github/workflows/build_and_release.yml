@@ -1,4 +1,4 @@
-name: Build & Release
+name: Build, Test & Release
 
 # Sets the trigger to changing the VERSION file in the main branch
 on:
@@ -23,6 +23,12 @@ jobs:
       run: |
         windres version.rc -o version.o
         gcc .\src\bin_grabber.c version.o -o .\output\bin_grabber_x64.exe -s -m64
+
+    - name: Test the Tool
+      run: .\output\bin_grabber_x64.exe running_processes
+
+    - name: Check Output
+      run: Get-ChildItem running_processes
 
     - name: Remove Placeholder
       run: Remove-Item output/.gitkeep
