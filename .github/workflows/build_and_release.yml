@@ -22,7 +22,7 @@ jobs:
     - name: Compile 64bit Binary
       run: |
         windres version.rc -o version.o
-        gcc .\src\bin_grabber.c version.o -o output/bin_grabber_x64.exe -s -m64
+        gcc .\src\bin_grabber.c version.o -o .\output\bin_grabber_x64.exe -s -m64
 
     - name: Remove Placeholder
       run: Remove-Item output/.gitkeep
