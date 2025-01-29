@@ -1,10 +1,12 @@
 name: Build & Release
 
-# This will trigger the workflow for any tag that starts with 'v'
+# Sets the trigger to changing the VERSION file in the main branch
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+    - main
+    paths:
+    - 'VERSION'
 
 # Allows the workflow to create release
 permissions:
@@ -25,14 +27,16 @@ jobs:
     - name: Remove Placeholder
       run: Remove-Item output/.gitkeep
 
-    - name: Get tag name
-      run: echo "Tag name is ${GITHUB_REF#refs/tags/}"
+    - name: Read Version
+      run: |
+        $version = Get-Content VERSION
+        Write-Output "VERSION=$version" >> $env:GITHUB_ENV
 
     - name: Create Release
       uses: softprops/action-gh-release@v2
       with:
-        tag_name: ${GITHUB_REF#refs/tags/}
-        name: BinGrabber ${GITHUB_REF#refs/tags/}
+        tag_name: ${{ env.VERSION }}
+        name: BinGrabber ${{ env.VERSION }}
         make_latest: true
         draft: false
         prerelease: false
